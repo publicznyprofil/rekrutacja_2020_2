@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="row">
+        <div class="col-12">
+            <h3>
+                {{ object.filename }}
+                <small><a href="{% url 'dataset_fetcher:dataset-download' object.pk %}">download</a></small>
+            </h3>
+        </div>
+        <div class="col-12">
+            <table id="result-table" class="table table-striped">
+                <thead>
+                <tr>
+                    {% for header in headers %}
+                        <th>{{ header }}</th>
+                    {% endfor %}
+                </tr>
+                </thead>
+                <tbody>
+                {% for row in rows %}
+                    <tr>
+                        {% for cell in row %}
+                            <td>{{ cell }}</td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <button id="load-more-btn" class="btn btn-primary mb-5">
+        Load more
+    </button>
+    <script>
+        let page = 1;
+        $('#load-more-btn').on('click', function () {
+            $.ajax({
+                url: '{% url "dataset_fetcher:dataset-rows" object.pk %}',
+                data: {'page': page},
+                success: function (result) {
+                    if (!result['rows'].length || result['rows'].length < 10) {
+                        $('#load-more-btn').hide();
+                    }
+                    let data = transformDataToRows(result['rows']);
+                    $('#result-table tbody').append(data);
+                    page++;
+                }
+            });
+        });
+
+        function transformDataToRows(data) {
+            let html = '';
+            for (const jsonRow of data) {
+                html +=
+                    `<tr>
+                        ${Object.keys(jsonRow).map(function (key) {
+                            return `<td>${jsonRow[key]}</td>`
+                        }).join('')}
+                    </tr>`;
+            }
+            return html
+        }
+
+    </script>
+{% endblock content %}
