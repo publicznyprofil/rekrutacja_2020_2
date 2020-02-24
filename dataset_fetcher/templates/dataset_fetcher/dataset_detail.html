@@ -32,11 +32,38 @@
     <button id="load-more-btn" class="btn btn-primary mb-5">
         Load more
     </button>
+
+    <div class="row">
+        <div class="col-12">
+            {% for header in headers %}
+                <a href="#" class="select-header btn btn-secondary" data-name="{{ header }}">{{ header }}</a>
+            {% endfor %}
+        </div>
+        <div class="col-12">
+            <table id="result-values-count-table" class="table table-striped">
+                <thead>
+                    <tr>
+                        {% for header in headers %}
+                            <th class="{{ header }}-header" style="display: none;">{{ header }}</th>
+                        {% endfor %}
+                        <th>Value</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+    <button id="load-more-value-count-btn" class="btn btn-primary mb-5" style="display: none;">
+        Load more for value count
+    </button>
+
     <script>
+        let dataRowsUrl = '{% url "dataset_fetcher:dataset-rows" object.pk %}';
+        
         let page = 1;
         $('#load-more-btn').on('click', function () {
             $.ajax({
-                url: '{% url "dataset_fetcher:dataset-rows" object.pk %}',
+                url: dataRowsUrl,
                 data: {'page': page},
                 success: function (result) {
                     if (!result['rows'].length || result['rows'].length < 10) {
@@ -48,15 +75,71 @@
                 }
             });
         });
+        
+        let loadMoreValueCountButton = $('#load-more-value-count-btn');
+        let pageValueCount = 1;
+        let selectedHeaders = [];
 
+        $('.select-header').on('click', function (e) {
+            e.preventDefault();
+
+            let selectedHeader = $(this).data('name');
+            let clickedButton = $(this);
+            let tableHeaderOfClickedButton = $(`#result-values-count-table thead th.${selectedHeader}-header`);
+
+            clickedButton.toggleClass('btn-warning');
+            if (clickedButton.hasClass('btn-warning')){
+                selectedHeaders.push(selectedHeader);
+                tableHeaderOfClickedButton.show();
+            } else {
+                selectedHeaders = selectedHeaders.filter(item => item !== selectedHeader);
+                tableHeaderOfClickedButton.hide();
+            }
+
+            resetValueCount();
+            if (selectedHeaders.length > 0){
+                setDataFromAjax();
+            }
+        });
+
+        loadMoreValueCountButton.on('click', function () {
+            setDataFromAjax();
+        });
+
+        function resetValueCount(){
+            pageValueCount = 0;
+             if (selectedHeaders.length > 0){
+                loadMoreValueCountButton.show();
+            } else {
+                loadMoreValueCountButton.hide();
+             }
+            $('#result-values-count-table tbody').html('');
+        }
+
+        function setDataFromAjax(){
+            $.ajax({
+                url: dataRowsUrl,
+                data: {'headers': selectedHeaders, 'page': pageValueCount},
+                success: function (result) {
+                    if (!result['rows'].length || result['rows'].length < 10) {
+                        loadMoreValueCountButton.hide();
+                    }
+                    let data = transformDataToRows(result['rows']);
+                    // we could use first row as table headers (use thead th)
+                    $('#result-values-count-table tbody').append(data);
+                    pageValueCount++;
+                }
+            });
+        }
+        
         function transformDataToRows(data) {
             let html = '';
-            for (const jsonRow of data) {
+            for (const jsonRow of data.slice(1)) {
                 html +=
                     `<tr>
                         ${Object.keys(jsonRow).map(function (key) {
-                            return `<td>${jsonRow[key]}</td>`
-                        }).join('')}
+                        return `<td>${jsonRow[key]}</td>`
+                    }).join('')}
                     </tr>`;
             }
             return html

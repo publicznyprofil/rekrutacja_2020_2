@@ -52,4 +52,28 @@ class DatasetRowsViewTest(TestCase):
         json_response = json.loads(str(response.content, encoding='utf-8'))
         self.assertIn('success', json_response)
         self.assertIn('rows', json_response)
-        self.assertEqual(len(json_response['rows']), 10)
+        self.assertEqual(len(json_response['rows']), 11)
+
+    def test_aggregation_with_one_header(self):
+        dataset = Dataset.objects.create(file=SAMPLE_CSV_FILE_PATH)
+        url = reverse('dataset_fetcher:dataset-rows', kwargs={'pk': dataset.pk})
+
+        response = self.client.get(url, {'headers[]': 'date', 'page': 0})
+
+        self.assertEqual(response.status_code, 200)
+        json_response = json.loads(str(response.content, encoding='utf-8'))
+        self.assertIn('success', json_response)
+        self.assertIn('rows', json_response)
+        self.assertEqual(len(json_response['rows']), 2)
+
+    def test_aggregation_with_two_headers(self):
+        dataset = Dataset.objects.create(file=SAMPLE_CSV_FILE_PATH)
+        url = reverse('dataset_fetcher:dataset-rows', kwargs={'pk': dataset.pk})
+
+        response = self.client.get(url, {'headers[]': ['date', 'gender'], 'page': 0})
+
+        self.assertEqual(response.status_code, 200)
+        json_response = json.loads(str(response.content, encoding='utf-8'))
+        self.assertIn('success', json_response)
+        self.assertIn('rows', json_response)
+        self.assertEqual(len(json_response['rows']), 5)
