@@ -42,12 +42,7 @@
         <div class="col-12">
             <table id="result-values-count-table" class="table table-striped">
                 <thead>
-                    <tr>
-                        {% for header in headers %}
-                            <th class="{{ header }}-header" style="display: none;">{{ header }}</th>
-                        {% endfor %}
-                        <th>Value</th>
-                    </tr>
+                    <tr></tr>
                 </thead>
                 <tbody></tbody>
             </table>
@@ -98,12 +93,12 @@
 
             resetValueCount();
             if (selectedHeaders.length > 0){
-                setDataFromAjax();
+                setDataFromAjax(true);
             }
         });
 
         loadMoreValueCountButton.on('click', function () {
-            setDataFromAjax();
+            setDataFromAjax(false);
         });
 
         function resetValueCount(){
@@ -116,7 +111,7 @@
             $('#result-values-count-table tbody').html('');
         }
 
-        function setDataFromAjax(){
+        function setDataFromAjax(setHeaders){
             $.ajax({
                 url: dataRowsUrl,
                 data: {'headers': selectedHeaders, 'page': pageValueCount},
@@ -125,7 +120,9 @@
                         loadMoreValueCountButton.hide();
                     }
                     let data = transformDataToRows(result['rows']);
-                    // we could use first row as table headers (use thead th)
+                    if (setHeaders){
+                        setHeadersForValuesCount(result['rows'][0]);
+                    }
                     $('#result-values-count-table tbody').append(data);
                     pageValueCount++;
                 }
@@ -145,5 +142,12 @@
             return html
         }
 
+        function setHeadersForValuesCount(headerRow) {
+            let headers = Object.keys(headerRow).map(function (index) {
+                 return `<td>${headerRow[index]}</td>`
+             }).join('');
+
+            $('#result-values-count-table thead tr').html(headers);
+        }
     </script>
 {% endblock content %}
